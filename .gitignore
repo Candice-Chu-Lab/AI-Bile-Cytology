@@ -1,0 +1,7 @@
+openslides/
+__pyachache__/
+DS_*.mrxs
+DS_*/
+outputs/
+patches_*/
+Proposal_Xi*
