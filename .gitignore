@@ -1,7 +1,8 @@
 openslides/
-__pyachache__/
+__pycache__/
 DS_*.mrxs
 DS_*/
 outputs/
 patches_*/
 Proposal_Xi*
+backup/

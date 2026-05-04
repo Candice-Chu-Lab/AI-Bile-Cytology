@@ -150,7 +150,6 @@ def detect_inner_ring_location(
 
     return result
 
-
 # if __name__ == "__main__":
 #     ring_info = detect_inner_ring_location("DS_A09R_01S.mrxs", show_debug=True)
 #     print("Inner center (thumbnail):", ring_info["inner_center_thumbnail"])
