@@ -6,3 +6,5 @@ outputs/
 patches_*/
 Proposal_Xi*
 backup/
+cross-validation/
+annotation_result.csv
