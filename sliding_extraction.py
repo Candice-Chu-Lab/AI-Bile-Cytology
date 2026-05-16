@@ -223,7 +223,7 @@ if __name__ == "__main__":
     base_name = os.path.basename(slide_path).split(".")[0]
 
     patch_size = 512
-    max_saved_patches = 100
+    max_saved_patches = 600
 
     save_dir = f"./patches_tiles/{base_name}"
     output_dir = f"./outputs/{base_name}"
