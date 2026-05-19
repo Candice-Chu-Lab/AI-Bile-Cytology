@@ -81,7 +81,7 @@ if __name__ == "__main__":
     if not os.path.isdir(base_path):
         raise FileNotFoundError(f"Patch folder not found: {base_path}")
 
-    excluded_dir = f"./patches_excluded/{slide_path}"
+    excluded_dir = f"{base_path}/excluded"
     os.makedirs(excluded_dir, exist_ok=True)
 
     for filename in os.listdir(base_path):
@@ -96,6 +96,6 @@ if __name__ == "__main__":
             if is_empty_patch(patch):
                 empty_patch_cnt += 1
                 excluded_path = os.path.join(excluded_dir, filename)
-                cv2.imwrite(excluded_path, patch)
+                os.replace(patch_path, excluded_path)
 
     print(f"Total empty patches: {empty_patch_cnt}")
