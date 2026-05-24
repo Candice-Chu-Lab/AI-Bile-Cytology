@@ -5,6 +5,12 @@ openslides\Scripts\activate
 X-Anylabeling will be utilized for this task
 
 
+### Running The code
+
+python sliding_extraction.py --slide_path "slides/DS_B04R_04S.mrxs" --run_filtering
+
+
+
 ### File description
 - sliding_extraction.py: extarct patches from the whole slide image
 - improved_filter_crtieria.py: helps filter the background patches (the patches that doesn't have much information)
