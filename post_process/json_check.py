@@ -1,6 +1,15 @@
 # Check conducted
+import dataclasses
 import json
 import os
+import tyro
+from dataclasses import dataclass
+
+@dataclass
+class jsonArgs:
+    slides_path: str
+    multiple_slides: bool = False
+
 
 def check_all_json_exists(slides_path, label_path):
     # Use sets to ignore order
@@ -32,16 +41,23 @@ def check_json_content(label_path):
 
     return error_entry
 
+# TODO: add a function to calculate total count of positive/negative cases based on the JSON files, which can be used for stratification in the next step
+# save to csv so that stratification can be used
+def calculate_total_count(label_path):
+    pass
 
 
+if __name__ == "__main__":
+    args = tyro.cli(jsonArgs)
+    step_1_check = check_all_json_exists(args.slides_path, args.slides_path)
+    if step_1_check:
+        print("All JSON files exist for the corresponding slide files.")
+    else:
+        raise FileNotFoundError("Mismatch between slide files and JSON label files. Please check the directories.")
 
+    step_2_check = check_json_content(args.slides_path)
+    if not step_2_check:
+        print("All JSON files passed content checks.")
 
-slide_path = "./patches_tiles/slides/"
-label_path = "./patches_tiles/slides/"
-step_1_check = check_all_json_exists(slide_path, label_path)
-if step_1_check:
-    print("All JSON files exist for the corresponding slide files.")
-
-step_2_check = check_json_content(label_path)
-if not step_2_check:
-    print("All JSON files passed content checks.")
+    calculate_total_count(args.slides_path)
+    

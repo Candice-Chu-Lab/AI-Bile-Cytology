@@ -12,6 +12,7 @@ from utils import visualize_photos_on_thumbnail
 
 
 def folder_separation(target_folder, num_photos = 400):
+    print("Separating photos into folders...")
     path = f"./patches_tiles/{target_folder}"
     path_section = f"./patches_tiles/{target_folder}/section"
     os.makedirs(path_section, exist_ok=True)

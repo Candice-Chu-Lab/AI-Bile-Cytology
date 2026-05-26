@@ -16,6 +16,10 @@ class Args:
     patch_size: int = 512
     max_saved_patches: int = 600
     run_filtering: bool = False
+    separate_folder: bool = False
+    save_dir: str = "./patches_tiles"
+    # output_dir: str = "./patches_tiles/outputs"
+    folder_num_images: int = 400 # number of images per folder when separate_folder is True
 
 
 
@@ -217,14 +221,17 @@ def save_patch(slide, x, y, patch_size, save_dir, patch_name):
 
 
 def run_extraction(args):
+
     slide_path = args.slide_path
     base_name = os.path.basename(slide_path).split(".")[0]
 
     patch_size = args.patch_size
     max_saved_patches = args.max_saved_patches
 
-    save_dir = f"./patches_tiles/{base_name}"
-    output_dir = f"./patches_tiles/outputs/{base_name}"
+    # create save directory and output directory for this slide
+    save_dir = f"{args.save_dir}/{base_name}"
+    output_dir = f"{args.save_dir}/{base_name}/output"
+    # output_dir = f"{args.output_dir}/{base_name}"
 
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
@@ -287,6 +294,8 @@ def run_extraction(args):
 
     saved_count = 0
 
+    print("Running patch extraction...")
+    print("Note: This process may take several minutes depending on the number of patches.")
     print("Scanning selected region for valid patches...")
 
     # ------------------------------------------------------------
@@ -333,7 +342,7 @@ def run_extraction(args):
     plt.title("Selected region and saved patches on thumbnail")
     plt.axis("off")
     plt.savefig(overlay_path, bbox_inches="tight", dpi=200)
-    plt.show()
+    #plt.show()
 
     print(f"Overlay saved to: {overlay_path}")
 
@@ -346,7 +355,7 @@ def run_filter(args):
     empty_patch_cnt = 0
 
     slide_path = Path(args.slide_path).stem
-    base_path = f"./patches_tiles/{slide_path}"
+    base_path = f"{args.save_dir}/{slide_path}"
 
     if not os.path.isdir(base_path):
         raise FileNotFoundError(f"Patch folder not found: {base_path}")
@@ -370,10 +379,17 @@ def run_filter(args):
 
     print(f"Total empty patches: {empty_patch_cnt}")
 
+
+# example: python sliding_extraction.py --slide_path "slides/DS_B04R_04S.mrxs" --run_filtering --separate_folder
 if __name__ == "__main__":
     import tyro
 
     args = tyro.cli(Args)
     run_extraction(args)
+    # filter patches
     if args.run_filtering:
         run_filter(args)
+    # separate unfiltered patches into folders
+    if args.separate_folder:
+        from post_process.separate_folder import folder_separation
+        folder_separation(Path(args.slide_path).stem, num_photos = args.folder_num_images)

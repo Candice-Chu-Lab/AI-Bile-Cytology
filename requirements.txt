@@ -40,6 +40,7 @@ django-user-agents==0.4.0
 djangorestframework==3.15.2
 djangorestframework_simplejwt==5.5.1
 dnspython==2.8.0
+docstring_parser==0.18.0
 drf-dynamic-fields==0.3.0
 drf-flex-fields==0.9.5
 drf-generators==0.3.0
@@ -152,8 +153,10 @@ tldextract==5.3.1
 toml==0.10.2
 tomli==2.4.1
 tqdm==4.67.3
+typeguard==4.5.2
 typing-inspection==0.4.2
 typing_extensions==4.15.0
+tyro==1.0.13
 tzdata==2026.2
 ua-parser==1.0.2
 ua-parser-builtins==202603
