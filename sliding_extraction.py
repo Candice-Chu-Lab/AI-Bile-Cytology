@@ -9,6 +9,8 @@ from pathlib import Path
 
 from dataclasses import dataclass
 
+from post_process.improved_filter_criteria import should_exclude_patch
+
 
 @dataclass
 class Args:
@@ -371,11 +373,11 @@ def run_filter(args):
             if patch is None:
                 print(f"Skipping unreadable image: {patch_path}")
                 continue
-
-            if is_empty_patch(patch):
-                empty_patch_cnt += 1
-                excluded_path = os.path.join(excluded_dir, filename)
-                os.replace(patch_path, excluded_path)
+        
+        if should_exclude_patch(patch):
+            empty_patch_cnt += 1
+            excluded_path = os.path.join(excluded_dir, filename)
+            os.replace(patch_path, excluded_path)
 
     print(f"Total empty patches: {empty_patch_cnt}")
 
