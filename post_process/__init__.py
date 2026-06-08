@@ -1,1 +1,1 @@
-from .improved_filter_criteria import background_ratio, stained_pixel_ratio, stained_component_count, is_empty_patch
+from .improved_filter_criteria import background_info, stained_pixel_ratio, stained_component_count, is_empty_patch

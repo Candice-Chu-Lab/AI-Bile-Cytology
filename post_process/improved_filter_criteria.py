@@ -3,11 +3,31 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def background_ratio(patch, threshold=220):
-    gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
-    white_pixels = (gray > threshold).sum()
-    return white_pixels / gray.size
+# def background_ratio(patch, threshold=220):
+#     gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+#     white_pixels = (gray > threshold).sum()
+#     return white_pixels / gray.size
 
+
+def background_info(patch):
+    gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(patch, cv2.COLOR_BGR2HSV)
+
+    s = hsv[:, :, 1]
+    v = hsv[:, :, 2]
+
+    bright_bg_mask = (gray > 220)
+    hsv_bg_mask = (v > 210) & (s < 35)
+
+    dark_ratio = (v < 80).sum() / v.size
+    low_saturation_ratio = (s < 35).sum() / s.size
+
+    return {
+        "gray_bg_ratio": bright_bg_mask.sum() / gray.size,
+        "hsv_bg_ratio": hsv_bg_mask.sum() / v.size,
+        "dark_ratio": dark_ratio,
+        "low_saturation_ratio": low_saturation_ratio,
+    }
 
 def stained_pixel_ratio(patch):
     """
@@ -37,19 +57,66 @@ def stained_pixel_ratio(patch):
 
 def blur_score(patch):
     gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+    lap = cv2.Laplacian(gray, cv2.CV_64F)
+    return lap.var()
 
-    # Larger value = sharper image
-    score = cv2.Laplacian(gray, cv2.CV_64F).var()
+def is_blurry_patch(patch, blur_threshold=30, visualize=False):
+    # score = blur_score(patch)
+    gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+    lap = cv2.Laplacian(gray, cv2.CV_64F)
+    blur_score = lap.var()
 
-    return score
+    is_blurry = blur_score < blur_threshold
+    print(f"Blur score: {blur_score:.2f} (threshold={blur_threshold}) => is_blurry={is_blurry}")
 
-def is_blurry_patch(patch, blur_threshold=50):
-    score = blur_score(patch)
-    return score < blur_threshold
+    if visualize:
+        patch_rgb = cv2.cvtColor(patch, cv2.COLOR_BGR2RGB)
+        lap_vis = cv2.normalize(
+            np.abs(lap), None, 0, 255, cv2.NORM_MINMAX
+        ).astype(np.uint8)
+
+        plt.figure(figsize=(10, 4))
+
+        plt.subplot(1, 2, 1)
+        plt.imshow(patch_rgb)
+        plt.title("Original patch")
+        plt.axis("off")
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(lap_vis, cmap="hot")
+        plt.title(f"Laplacian blur score={blur_score:.2f}\nis_blurry={is_blurry}")
+        plt.axis("off")
+
+        plt.tight_layout()
+        plt.show()
+    return blur_score < blur_threshold
+
+
+
 
 def is_empty_patch(patch):
     info = get_patch_filter_info(patch)
     return info["is_empty"]
+
+
+# def is_too_crowded_patch(
+#     patch,
+#     bg_ratio_threshold=0.10,
+#     broad_stain_ratio_threshold=0.35,
+#     refined_stain_ratio_threshold=0.25
+# ):
+#     bg_ratio = background_ratio(patch)
+#     broad_stain_ratio = stained_pixel_ratio(patch)
+
+#     component_count, kept_boxes, refined_mask, refined_stain_ratio = stained_component_count(
+#         patch
+#     )
+
+#     return (
+#         bg_ratio < bg_ratio_threshold or
+#         broad_stain_ratio > broad_stain_ratio_threshold or
+#         refined_stain_ratio > refined_stain_ratio_threshold
+#     )
 
 
 def stained_component_count(
@@ -69,6 +136,7 @@ def stained_component_count(
     s = hsv[:, :, 1]
     v = hsv[:, :, 2]
 
+    # find the stained pixels with a broad threshold first, then refine with connected component analysis
     mask = (
         (s > s_threshold) &
         (v < v_threshold) &
@@ -118,7 +186,10 @@ def get_patch_filter_info(patch):
     Compute all measurements needed for filtering and visualization.
     """
 
-    bg_ratio = background_ratio(patch)
+    # bg_ratio = background_ratio(patch)
+    info = background_info(patch)
+
+    
     broad_stain_ratio = stained_pixel_ratio(patch)
 
     component_count, kept_boxes, refined_mask, refined_stain_ratio = stained_component_count(
@@ -126,14 +197,14 @@ def get_patch_filter_info(patch):
     )
 
     is_empty = (
-        bg_ratio > 0.90 and
+        info["hsv_bg_ratio"] > 0.90 and
         refined_stain_ratio < 0.0003 and
-        component_count == 0
+        component_count < 3
     )
 
     return {
         "is_empty": is_empty,
-        "bg_ratio": bg_ratio,
+        "bg_ratio": info["hsv_bg_ratio"],
         "broad_stain_ratio": broad_stain_ratio,
         "refined_stain_ratio": refined_stain_ratio,
         "component_count": component_count,
@@ -143,6 +214,7 @@ def get_patch_filter_info(patch):
 
 def visualize_patch_filter(patch):
     info = get_patch_filter_info(patch)
+    is_blurry = is_blurry_patch(patch)
 
     is_empty = info["is_empty"]
     bg_ratio = info["bg_ratio"]
@@ -224,6 +296,8 @@ def visualize_patch_filter(patch):
         f"broad_stain_ratio = {broad_stain_ratio:.6f}\n"
         f"refined_stain_ratio = {refined_stain_ratio:.6f}\n"
         f"component_count = {component_count}"
+        f"\nis_blurry = {is_blurry}\n"
+        # f"is_crowded = {is_crowded}"
     )
     plt.text(0.05, 0.5, decision_text, fontsize=14)
     plt.axis("off")
@@ -243,9 +317,10 @@ def visualize_patch_filter(patch):
 
 
 def should_exclude_patch(patch):
+    #is_too_crowded_patch(patch)
     return (
-        is_empty_patch(patch) or
-        #is_blurry_patch(patch, blur_threshold=50)
+        is_empty_patch(patch) 
+        #or is_blurry_patch(patch, blur_threshold=50) 
     )
 
 
@@ -278,6 +353,9 @@ if __name__ == "__main__":
     # print(f"Total empty patches: {empty_patch_cnt}")
 
     # Example usage with a sample patch
-    patch_path = r"C:\Users\USER\Desktop\TAMU\AI-bile\patches_tiles\DS_B04R_04S\DS_B04R_04S_patch_78950_124160.png"
+    patch_path = r"C:\Users\USER\Desktop\TAMU\AI-bile\patches_tiles\DS_B04R_04S\DS_B04R_04S_patch_70422_137739.png"
     patch = cv2.imread(patch_path)
-    is_empty = is_empty_patch(patch, visualize=True)
+    #is_empty = is_empty_patch(patch)
+    # visualize_patch_filter(patch)
+
+  
