@@ -25,18 +25,38 @@ def check_json_content(label_path):
     for filename in filter:
         with open(os.path.join(label_path, filename), "r") as f:
             data = json.load(f)
-            # Perform content checks on 'data' as needed
             flags = data.get("flags", {})
-            # TODO: revise based on the final decision on labels
-            # one of rod, cone must be true, but not both
-            if not (flags.get("rod", False) ^ flags.get("cone", False)):
-                print(f"Error in {filename}: Both 'rod' and 'cone' flags cannot be true or both cannot be false.")
+
+            is_not_present = flags.get("Not-present", False)
+            is_not_usable = flags.get("Not-Usable", False)
+
+            # Rule 1: If Not-present or Not-Usable, no other flags should be true
+            if is_not_present or is_not_usable:
+                other_flags = ["Present", "Rods", "Cocci", "Yeast", "Few", "Moderate", "Abundant"]
+                # Also ensure Not-present and Not-Usable are not both true
+                if is_not_present and is_not_usable:
+                    print(f"Error in {filename}: 'Not-present' and 'Not-Usable' cannot both be true.")
+                    error_entry.append(filename)
+                elif any(flags.get(label, False) for label in other_flags):
+                    print(f"Error in {filename}: If 'Not-present' or 'Not-Usable' is true, no other flags should be true.")
+                    error_entry.append(filename)
+                continue  # Skip further checks for this file
+
+            # Rule 2: Exactly one of Rods, Cocci, Yeast must be true
+            type_flags = [flags.get("Rods", False), flags.get("Cocci", False), flags.get("Yeast", False)]
+            if sum(type_flags) != 1:
+                print(f"Error in {filename}: Exactly one of 'Rods', 'Cocci', or 'Yeast' must be true.")
                 error_entry.append(filename)
 
-            # Exactly one of small, medium, large must be true
-            size_flags = [flags.get("small", False), flags.get("medium", False), flags.get("large", False)]
-            if sum(size_flags) != 1:
-                print(f"Error in {filename}: Exactly one of 'small', 'medium', or 'large' flags must be true.")
+            # Rule 3: Exactly one of Few, Moderate, Abundant must be true
+            quantity_flags = [flags.get("Few", False), flags.get("Moderate", False), flags.get("Abundant", False)]
+            if sum(quantity_flags) != 1:
+                print(f"Error in {filename}: Exactly one of 'Few', 'Moderate', or 'Abundant' must be true.")
+                error_entry.append(filename)
+
+            # Rule 4: Present must be true if we reach here
+            if not flags.get("Present", False):
+                print(f"Error in {filename}: 'Present' must be true when specifying type and quantity.")
                 error_entry.append(filename)
 
     return error_entry
@@ -47,6 +67,7 @@ def calculate_total_count(label_path):
     pass
 
 
+# python post_process/json_check.py --slides_path DS_A09R_16S_first50_Annotation/
 if __name__ == "__main__":
     args = tyro.cli(jsonArgs)
     step_1_check = check_all_json_exists(args.slides_path, args.slides_path)
