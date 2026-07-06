@@ -484,15 +484,15 @@ def run_filter(args):
     print(f"Total empty patches: {empty_patch_cnt}")
 
 
-# example: python sliding_extraction.py --slide_path "D:\bile_sample\DS_A09R_18S.mrxs" --run_filtering --select_patch
+# example: python sliding_extraction.py --slide_path "D:\bile_sample\DS_B04R_07S.mrxs" --run_filtering --select_patch
 if __name__ == "__main__":
     import tyro
 
     args = tyro.cli(Args)
-    # run_extraction(args)
-    # # filter patches
-    # if args.run_filtering:
-    #     run_filter(args)
+    run_extraction(args)
+    # filter patches
+    if args.run_filtering:
+        run_filter(args)
     
     if args.select_patch:
         from post_process.select_patches import draw_thumbnail, select_patch

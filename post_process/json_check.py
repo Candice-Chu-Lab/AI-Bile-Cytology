@@ -4,6 +4,7 @@ import json
 import os
 import tyro
 from dataclasses import dataclass
+import pandas as pd
 
 @dataclass
 class jsonArgs:
@@ -22,14 +23,15 @@ def check_all_json_exists(slides_path, label_path):
 def check_json_content(label_path):
     error_entry = []
     filter = [f for f in os.listdir(label_path) if f.endswith(".json")]
+    print("========  logs for ", label_path, "  ========")
     for filename in filter:
         with open(os.path.join(label_path, filename), "r") as f:
             data = json.load(f)
             flags = data.get("flags", {})
 
-            is_not_present = flags.get("Not-present", False)
-            is_not_usable = flags.get("Not-Usable", False)
 
+            is_not_present = flags.get("Not-present", False)
+            is_not_usable = flags.get("Not-usable", False)
             # Rule 1: If Not-present or Not-Usable, no other flags should be true
             if is_not_present or is_not_usable:
                 other_flags = ["Present", "Rods", "Cocci", "Yeast", "Few", "Moderate", "Abundant"]
@@ -61,24 +63,45 @@ def check_json_content(label_path):
 
     return error_entry
 
-# TODO: add a function to calculate total count of positive/negative cases based on the JSON files, which can be used for stratification in the next step
+# add a function to calculate total count of positive/negative cases based on the JSON files, which can be used for stratification in the next step
 # save to csv so that stratification can be used
 def calculate_total_count(label_path):
-    pass
+    columns = ["Present",'Not-present','Not-usable', "Rods", "Cocci", "Yeast", "Few", "Moderate", "Abundant"]
+    counts = {col: 0 for col in columns}
+    labels = os.listdir(label_path)
+    for filename in labels:
+        if filename.endswith(".json"):
+            with open(os.path.join(label_path, filename), "r") as f:
+                data = json.load(f)
+                flags = data.get("flags", {})
+                for col in columns:
+                    if flags.get(col, True):
+                        counts[col] += 1
+    return counts
 
-
-# python post_process/json_check.py --slides_path DS_A09R_16S_first50_Annotation/
+# python post_process/json_check.py --slides_path Annotation_Positive_Selected/
 if __name__ == "__main__":
     args = tyro.cli(jsonArgs)
-    step_1_check = check_all_json_exists(args.slides_path, args.slides_path)
-    if step_1_check:
-        print("All JSON files exist for the corresponding slide files.")
-    else:
-        raise FileNotFoundError("Mismatch between slide files and JSON label files. Please check the directories.")
+    slide_list = os.listdir(args.slides_path)
+    # The base folder contains lots of cases
+    count_dict = {}
+    for i in slide_list:
+        slide_path = os.path.join(args.slides_path, i)
+        # step_1_check = check_all_json_exists(args.slides_path, args.slides_path)
+        # if step_1_check:
+        #     print("All JSON files exist for the corresponding slide files.")
+        # else:
+        #     raise FileNotFoundError("Mismatch between slide files and JSON label files. Please check the directories.")
 
-    step_2_check = check_json_content(args.slides_path)
-    if not step_2_check:
-        print("All JSON files passed content checks.")
+        if not os.path.isdir(slide_path):
+            continue
+        step_2_check = check_json_content(slide_path)
+        if not step_2_check:
+            print("All JSON files passed content checks.")
 
-    calculate_total_count(args.slides_path)
+        individual_cnt = calculate_total_count(slide_path)
+        count_dict[i] = individual_cnt
+    # Save the count_dict to a CSV file
+    df = pd.DataFrame.from_dict(count_dict, orient='index')
+    df.to_excel(os.path.join("Annotation_Positive_Selected", "total_count.xlsx"))
     
