@@ -5,6 +5,7 @@ import os
 import tyro
 from dataclasses import dataclass
 import pandas as pd
+import shutil
 
 @dataclass
 class jsonArgs:
@@ -21,9 +22,11 @@ def check_all_json_exists(slides_path, label_path):
 
 
 def check_json_content(label_path):
+    print("first several entries of the JSON files:", os.listdir(label_path)[:5])
     error_entry = []
     filter = [f for f in os.listdir(label_path) if f.endswith(".json")]
     print("========  logs for ", label_path, "  ========")
+    print("a total of ", len(filter), " JSON files to check.")
     for filename in filter:
         with open(os.path.join(label_path, filename), "r") as f:
             data = json.load(f)
@@ -79,10 +82,41 @@ def calculate_total_count(label_path):
                         counts[col] += 1
     return counts
 
+# note: the action is not recoverable, it will directly delete the unsable JSON files
+# but it will save a copy of the unsable JSON files in a new folder called "filtered_json" in the slide_path
+def filter_out_unusable(slide_path):
+    # Create a new folder for filtered JSON files
+    print("========  filter logs for ", slide_path, "  ========")
+    filtered_folder = os.path.join(slide_path, "filtered_json")
+    os.makedirs(filtered_folder, exist_ok=True)
+    cnt = 0
+
+    # Iterate through all JSON files in the slide_path
+    for filename in os.listdir(slide_path):
+        if filename.endswith(".json"):
+            with open(os.path.join(slide_path, filename), "r") as f:
+                data = json.load(f)
+                flags = data.get("flags", {})
+
+            # Check if the JSON contains the file not usable
+            is_not_usable = flags.get("Not-usable", True)
+
+            if is_not_usable:
+                print(f"Excluding {filename} as it is marked 'Not-usable'.")
+                # Copy the unsable JSON file to the filtered folder
+                shutil.copy2(os.path.join(slide_path, filename), os.path.join(filtered_folder, filename))
+                # removing the unsable JSON file from the original folder
+                os.remove(os.path.join(slide_path, filename))
+                cnt+= 1
+    print(f"Total {cnt} unsable JSON files filtered out of {len(os.listdir(slide_path))} total JSON files.")
+        
+
 # python post_process/json_check.py --slides_path Annotation_Positive_Selected/
 if __name__ == "__main__":
     args = tyro.cli(jsonArgs)
     slide_list = os.listdir(args.slides_path)
+    # exclude any non-directory items
+    slide_list = [i for i in slide_list if os.path.isdir(os.path.join(args.slides_path, i))]
     # The base folder contains lots of cases
     count_dict = {}
     for i in slide_list:
@@ -93,11 +127,13 @@ if __name__ == "__main__":
         # else:
         #     raise FileNotFoundError("Mismatch between slide files and JSON label files. Please check the directories.")
 
-        if not os.path.isdir(slide_path):
-            continue
+        # if not os.path.isdir(slide_path):
+        #     continue
         step_2_check = check_json_content(slide_path)
         if not step_2_check:
             print("All JSON files passed content checks.")
+
+        step_3 = filter_out_unusable(slide_path)
 
         individual_cnt = calculate_total_count(slide_path)
         count_dict[i] = individual_cnt

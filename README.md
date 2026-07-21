@@ -16,6 +16,11 @@ python sliding_extraction.py --slide_path "slides/DS_B04R_04S.mrxs" --run_filter
 - improved_filter_crtieria.py: helps filter the background patches (the patches that doesn't have much information)
 - json_check.py: check if the label from X-Anylabeling is correct
 - stratification.py: Given an annotation reult file that has the file format as in annotation_result.csv, construct k-fold cross validation dataset
+- stratification_postprocess.py: Given the fold data, aggregate into a summary table
+- info_aggregate.py: For the positive and negative case, generate the count for each case
+- training_data_creation.py: create the training file by splitting it into three folds
+- folder_classification.py: given the aggregated label for each case, we separate it into different folders.
+
 
 
 

@@ -9,3 +9,12 @@ backup/
 cross-validation/
 annotation_result.csv
 output_tiles/
+
+post_process/separate_folder_400.py
+post_process/log_file_generation.py
+
+50uL_WSI_Quality_Selected_Slides_0604_Update (1).xlsx
+Annotation_Positive_Selected/
+Annotation_Positive_Selected_old/
+error_log.xlsx
+old_annotation/
